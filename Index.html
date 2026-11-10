@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#fff3dc">
+<title>網址 QR Code 產生器</title>
+<style>
+:root{
+  --canvas:#fff3dc;--paper:#fff;--powder:#ffe7c7;--powder-soft:#fff9ed;
+  --sky:#86d8ec;--sky-soft:#e6f8fb;--indigo:#8c79d9;--indigo-soft:#eee9ff;
+  --primary:#cc4352;--primary-dark:#a93645;--primary-soft:#ffe2e3;
+  --green:#23856b;--green-soft:#e3f7ef;--amber:#9a6400;--amber-soft:#fff0bd;
+  --orange:#f28c52;--yellow:#f7c948;--ink:#463544;--soft-ink:#665566;
+  --muted:#887584;--line:#ead8cc;--glass:rgba(255,255,255,.86);
+  --shadow:0 22px 60px rgba(142,88,70,.16);--shadow-soft:0 12px 28px rgba(142,88,70,.11);
+  --radius-xl:34px;--radius-lg:26px;--radius-md:18px;
+}
+*{box-sizing:border-box}
+input,select,textarea{max-width:100%}
+body{
+  margin:0;min-height:100vh;color:var(--ink);
+  font-family:"Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+  background:
+    radial-gradient(circle at 8% 10%,rgba(247,201,72,.38),transparent 25%),
+    radial-gradient(circle at 92% 12%,rgba(242,140,82,.26),transparent 28%),
+    radial-gradient(circle at 52% 96%,rgba(89,195,165,.22),transparent 32%),
+    linear-gradient(135deg,#fff0d2 0%,#fff9ed 48%,#ffe8dc 100%);
+  background-attachment:fixed;
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.container{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:26px 0 54px}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:13px 18px;border-radius:999px;background:var(--glass);
+  border:2px solid rgba(255,255,255,.92);box-shadow:var(--shadow-soft);
+  margin-bottom:22px;backdrop-filter:blur(16px)
+}
+.brand{display:flex;align-items:center;gap:12px;font-weight:950;letter-spacing:.03em}
+.logo{
+  width:44px;height:44px;border-radius:16px;display:grid;place-items:center;
+  color:#fff;font-size:23px;background:linear-gradient(135deg,var(--primary-dark),var(--primary));
+  box-shadow:0 12px 24px rgba(204,67,82,.25);transform:rotate(-5deg)
+}
+.top-tag{padding:8px 13px;border-radius:999px;background:var(--green-soft);color:var(--green);font-size:13px;font-weight:900}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;margin-bottom:22px}
+.hero-card{
+  position:relative;overflow:hidden;min-height:290px;padding:clamp(26px,4vw,46px);
+  border-radius:var(--radius-xl);background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(255,255,255,.7));
+  border:2px solid rgba(255,255,255,.95);box-shadow:var(--shadow)
+}
+.hero-card:before,.hero-card:after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.hero-card:before{width:175px;height:175px;right:-55px;top:-65px;background:linear-gradient(135deg,var(--yellow),var(--orange));opacity:.65}
+.hero-card:after{width:125px;height:125px;left:-45px;bottom:-55px;background:linear-gradient(135deg,var(--green-soft),var(--sky));opacity:.9}
+.hero-content{position:relative;z-index:1;max-width:620px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--amber-soft);color:var(--amber);font-size:13px;font-weight:950;margin-bottom:16px}
+h1{margin:0;font-size:clamp(34px,5vw,58px);line-height:1.15;letter-spacing:.02em}
+.accent{background:linear-gradient(90deg,var(--primary-dark),var(--primary),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{margin:16px 0 0;color:var(--soft-ink);font-size:17px;line-height:1.85}
+.hero-side{display:grid;gap:14px}
+.tip-card,.mini-card{
+  border-radius:var(--radius-xl);padding:21px;background:rgba(255,255,255,.82);
+  border:1px solid rgba(255,255,255,.94);box-shadow:var(--shadow-soft);backdrop-filter:blur(14px)
+}
+.tip-card{background:linear-gradient(135deg,rgba(255,240,189,.95),rgba(255,255,255,.82));display:flex;align-items:center;gap:16px;min-height:132px}
+.tip-icon{width:70px;height:70px;flex:0 0 70px;border-radius:23px;display:grid;place-items:center;background:#fff7d9;font-size:38px;box-shadow:0 12px 24px rgba(250,204,21,.2)}
+.tip-card h2,.mini-card h2{margin:0;font-size:21px}
+.tip-card p,.mini-card p{margin:7px 0 0;color:var(--soft-ink);line-height:1.7;font-size:14px}
+.mini-card{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mini-bubbles{font-size:28px;white-space:nowrap}
+.workspace{
+  display:grid;grid-template-columns:minmax(0,1.08fr) minmax(300px,.92fr);
+  gap:20px;align-items:stretch
+}
+.panel{
+  min-width:0;border-radius:var(--radius-xl);padding:clamp(18px,3vw,28px);
+  background:var(--glass);border:2px solid rgba(255,255,255,.94);
+  box-shadow:var(--shadow-soft);backdrop-filter:blur(16px)
+}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px}
+.panel h2{margin:0;font-size:25px;letter-spacing:.02em}
+.panel-sub{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.65}
+.step{display:inline-grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border-radius:13px;background:var(--primary-soft);color:var(--primary-dark);font-weight:950}
+.field-label{display:block;margin:0 0 9px;font-weight:900}
+.url-input{
+  width:100%;height:58px;padding:0 17px;border-radius:17px;border:2px solid var(--line);
+  outline:none;background:#fff;color:var(--ink);font-size:16px;transition:border .2s,box-shadow .2s
+}
+.url-input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(204,67,82,.12)}
+.url-input::placeholder{color:#ad9ca5}
+.hint{margin:9px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;
+  border:0;border-radius:999px;padding:12px 19px;color:#fff;font-weight:950;
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  box-shadow:0 13px 24px rgba(204,67,82,.22);transition:transform .2s,filter .2s,box-shadow .2s
+}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.04);box-shadow:0 17px 28px rgba(204,67,82,.28)}
+.btn.secondary{color:var(--primary-dark);background:#fff;border:2px solid rgba(204,67,82,.18);box-shadow:var(--shadow-soft)}
+.btn.green{background:linear-gradient(135deg,#2c9b7d,#1f6f59);box-shadow:0 13px 24px rgba(35,133,107,.2)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid rgba(204,67,82,.38);outline-offset:3px}
+.status{min-height:24px;margin:14px 0 0;font-size:14px;font-weight:800;color:var(--green);line-height:1.6}
+.status.error{color:var(--primary-dark)}
+.preview-panel{display:flex;flex-direction:column}
+.preview-area{
+  flex:1;min-height:310px;display:grid;place-items:center;padding:20px;
+  border-radius:24px;border:2px dashed #edcfbd;
+  background:radial-gradient(circle at 50% 40%,#fff 0%,#fffaf0 75%)
+}
+.empty-state{text-align:center;color:var(--muted);max-width:250px}
+.empty-icon{width:100px;height:100px;margin:0 auto 14px;border-radius:30px;display:grid;place-items:center;background:var(--sky-soft);font-size:54px;transform:rotate(-4deg)}
+.empty-state b{display:block;color:var(--soft-ink);font-size:17px}
+.empty-state p{margin:7px 0 0;font-size:13px;line-height:1.7}
+#qrCanvas{display:none;width:min(100%,330px);height:auto;aspect-ratio:1;background:#fff;border-radius:10px;box-shadow:0 12px 30px rgba(70,53,68,.12);image-rendering:pixelated}
+.qr-caption{margin:13px 0 0;text-align:center;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.downloads{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.downloads .btn{width:100%;font-size:14px;padding:11px 10px}
+.info-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.info-item{padding:14px;border-radius:19px;background:var(--powder-soft);border:1px solid var(--line);text-align:center}
+.info-item strong{display:block;font-size:19px;color:var(--primary-dark)}
+.info-item span{display:block;margin-top:4px;font-size:12px;color:var(--muted);font-weight:800}
+.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px;line-height:1.7}
+@media(max-width:850px){.hero,.workspace{grid-template-columns:1fr}.hero-card{min-height:260px}.hero-side{grid-template-columns:1fr 1fr}.tip-card{min-height:150px}.mini-card{align-items:flex-start;flex-direction:column}}
+@media(max-width:600px){
+ .container{width:calc(100% - 18px);padding:13px 0 30px}
+ .topbar{border-radius:22px;padding:11px 13px}.brand{font-size:14px}.logo{width:38px;height:38px;border-radius:13px}
+ .top-tag{font-size:11px;padding:7px 9px}
+ .hero{gap:12px}.hero-card{padding:24px 20px;border-radius:27px;min-height:0}
+ .hero p{font-size:15px}.hero-side{grid-template-columns:1fr}
+ .tip-card{min-height:0;padding:17px}.mini-card{flex-direction:row;align-items:center;padding:16px}
+ .panel{padding:18px;border-radius:27px}.panel h2{font-size:22px}
+ .actions{display:grid;grid-template-columns:1fr}.actions .btn{width:100%}
+ .preview-area{min-height:270px;padding:14px}.downloads{grid-template-columns:1fr}
+ .info-strip{gap:7px}.info-item{padding:11px 5px}.info-item strong{font-size:16px}.info-item span{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="container">
+  <nav class="topbar" aria-label="主導覽">
+    <div class="brand"><div class="logo">▦</div><span>網址 QR Code 產生器</span></div>
+    <div class="top-tag">✨ 免費・免安裝・可離線</div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-card">
+      <div class="hero-content">
+        <div class="eyebrow">🌟 QUICK QR MAKER</div>
+        <h1>網址一貼上<br><span class="accent">QR Code 馬上有！</span></h1>
+        <p>把網站網址變成掃描就能開啟的 QR Code。適合課程講義、活動海報、班級公告與學習資源分享。</p>
+      </div>
+    </div>
+    <aside class="hero-side">
+      <div class="tip-card">
+        <div class="tip-icon">📱</div>
+        <div><h2>掃描就能前往</h2><p>使用手機相機或 QR Code 掃描工具，即可開啟網址。</p></div>
+      </div>
+      <div class="mini-card">
+        <div><h2>🎨 清楚又好用</h2><p>產生後可下載圖片，放進簡報或文件。</p></div>
+        <div class="mini-bubbles" aria-hidden="true">🌈 ⭐ 🔗</div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="workspace" aria-label="QR Code 工具">
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>輸入你的網址</h2><p class="panel-sub">貼上完整網址，按下按鈕就能產生專屬 QR Code。</p></div>
+        <span class="step">01</span>
+      </div>
+      <form id="qrForm" novalidate>
+        <label class="field-label" for="urlInput">🔗 網站網址</label>
+        <input id="urlInput" class="url-input" type="text" inputmode="url" autocomplete="url"
+          placeholder="例如：https://www.google.com" aria-describedby="urlHint" required>
+        <p class="hint" id="urlHint">小提醒：若沒有輸入 https://，系統會自動幫你補上。</p>
+        <div class="actions">
+          <button class="btn" type="submit">🚀 產生 QR Code</button>
+          <button class="btn secondary" type="button" id="clearBtn">🧹 清除重來</button>
+          <button class="btn secondary" type="button" id="copyBtn" disabled>📋 複製網址</button>
+        </div>
+      </form>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div class="info-strip">
+        <div class="info-item"><strong>🔒</strong><span>網址不會上傳</span></div>
+        <div class="info-item"><strong>⚡</strong><span>快速產生</span></div>
+        <div class="info-item"><strong>📡</strong><span>支援離線</span></div>
+      </div>
+    </section>
+
+    <section class="panel preview-panel">
+      <div class="panel-head">
+        <div><h2>你的 QR Code</h2><p class="panel-sub">產生後會顯示在這裡，可下載 PNG 或 SVG。</p></div>
+        <span class="step">02</span>
+      </div>
+      <div class="preview-area">
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">▦</div>
+          <b>等待你的第一個 QR Code！</b>
+          <p>在左側輸入網址，按下「產生 QR Code」，就會在這裡看到圖案。</p>
+        </div>
+        <canvas id="qrCanvas" width="600" height="600" aria-label="產生的 QR Code"></canvas>
+      </div>
+      <p id="qrCaption" class="qr-caption">尚未產生 QR Code</p>
+      <div class="downloads">
+        <button id="pngBtn" class="btn green" type="button" disabled>⬇️ 下載 PNG 圖片</button>
+        <button id="svgBtn" class="btn secondary" type="button" disabled>⬇️ 下載 SVG 向量圖</button>
+      </div>
+    </section>
+  </section>
+  <p class="footer">💡 QR Code 產生完全在你的瀏覽器中完成，不會將輸入的網址傳送到外部服務。<br>建議下載後先用手機掃描測試，再放入正式文件或海報。</p>
+</main>
+
+<script>
+"use strict";
+
+/* QR Code byte-mode encoder：使用原生 JavaScript 與 Reed-Solomon 錯誤修正，無須外部套件。 */
+const QR_DATA_CODEWORDS = [0,19,34,55,80,108,136,156,194,232,274];
+const QR_ECC_PER_BLOCK = [0,7,10,15,20,26,18,20,24,30,18];
+const QR_BLOCKS = [
+  null,
+  [{count:1,total:26,data:19}],
+  [{count:1,total:44,data:34}],
+  [{count:1,total:70,data:55}],
+  [{count:1,total:100,data:80}],
+  [{count:1,total:134,data:108}],
+  [{count:2,total:86,data:68}],
+  [{count:2,total:98,data:78}],
+  [{count:2,total:121,data:97}],
+  [{count:2,total:146,data:116}],
+  [{count:2,total:86,data:68},{count:2,total:87,data:69}]
+];
+const QR_ALIGN = [[],[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
+
+function gfMultiply(x,y){
+  let z=0;
+  for(let i=7;i>=0;i--){
+    z=(z<<1)^((z>>>7)*0x11d);
+    z^=((y>>>i)&1)*x;
+  }
+  return z;
+}
+function rsDivisor(degree){
+  let poly=[1],root=1;
+  for(let i=0;i<degree;i++){
+    const next=new Array(poly.length+1).fill(0);
+    for(let j=0;j<poly.length;j++){
+      next[j]^=poly[j];
+      next[j+1]^=gfMultiply(poly[j],root);
+    }
+    poly=next;root=gfMultiply(root,2);
+  }
+  return poly.slice(1);
+}
+function rsRemainder(data,divisor){
+  const result=new Array(divisor.length).fill(0);
+  for(const byte of data){
+    const factor=byte^result[0];
+    result.shift();result.push(0);
+    for(let i=0;i<result.length;i++) result[i]^=gfMultiply(divisor[i],factor);
+  }
+  return result;
+}
+function appendBits(bits,value,length){
+  for(let i=length-1;i>=0;i--) bits.push((value>>>i)&1);
+}
+function makeCodewords(bytes,version){
+  const capacity=QR_DATA_CODEWORDS[version]*8;
+  const countBits=version<10?8:16;
+  const bits=[];
+  appendBits(bits,4,4); // Byte mode
+  appendBits(bits,bytes.length,countBits);
+  for(const byte of bytes) appendBits(bits,byte,8);
+  if(bits.length>capacity) throw new Error("網址太長，請縮短網址後再試一次。");
+  for(let i=0;i<Math.min(4,capacity-bits.length);i++) bits.push(0);
+  while(bits.length%8) bits.push(0);
+  const data=[];
+  for(let i=0;i<bits.length;i+=8){
+    let value=0;for(let j=0;j<8;j++) value=(value<<1)|bits[i+j];
+    data.push(value);
+  }
+  for(let pad=0;data.length<QR_DATA_CODEWORDS[version];pad++) data.push(pad%2===0?0xec:0x11);
+
+  const blocks=[];
+  let offset=0;
+  const divisor=rsDivisor(QR_ECC_PER_BLOCK[version]);
+  for(const group of QR_BLOCKS[version]){
+    for(let n=0;n<group.count;n++){
+      const blockData=data.slice(offset,offset+group.data);
+      offset+=group.data;
+      blocks.push({data:blockData,ecc:rsRemainder(blockData,divisor)});
+    }
+  }
+  const result=[];
+  const maxData=Math.max(...blocks.map(b=>b.data.length));
+  for(let i=0;i<maxData;i++) for(const block of blocks) if(i<block.data.length) result.push(block.data[i]);
+  for(let i=0;i<QR_ECC_PER_BLOCK[version];i++) for(const block of blocks) result.push(block.ecc[i]);
+  return result;
+}
+function bchRemainder(value,polynomial){
+  let v=value;
+  const degree=(p)=>31-Math.clz32(p);
+  while(degree(v)>=degree(polynomial)) v^=polynomial<<(degree(v)-degree(polynomial));
+  return v;
+}
+function makeMatrix(version,codewords,mask){
+  const size=17+version*4;
+  const modules=Array.from({length:size},()=>new Array(size).fill(false));
+  const isFunction=Array.from({length:size},()=>new Array(size).fill(false));
+  function setFunction(x,y,dark){
+    if(x>=0&&x<size&&y>=0&&y<size){modules[y][x]=!!dark;isFunction[y][x]=true;}
+  }
+  function finder(cx,cy){
+    for(let dy=-1;dy<=7;dy++) for(let dx=-1;dx<=7;dx++){
+      const x=cx+dx,y=cy+dy;
+      const inside=dx>=0&&dx<=6&&dy>=0&&dy<=6;
+      const dark=inside&&(dx===0||dx===6||dy===0||dy===6||(dx>=2&&dx<=4&&dy>=2&&dy<=4));
+      setFunction(x,y,dark);
+    }
+  }
+  finder(0,0);finder(size-7,0);finder(0,size-7);
+
+  // Alignment patterns are placed before timing patterns so finder overlaps can be skipped.
+  function alignment(cx,cy){
+    for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){
+      const dist=Math.max(Math.abs(dx),Math.abs(dy));
+      setFunction(cx+dx,cy+dy,dist!==1);
+    }
+  }
+  if(version>=2){
+    for(const y of QR_ALIGN[version]) for(const x of QR_ALIGN[version]){
+      if(!isFunction[y][x]) alignment(x,y);
+    }
+  }
+  for(let i=8;i<size-8;i++){
+    setFunction(6,i,i%2===0);
+    setFunction(i,6,i%2===0);
+  }
+
+  function drawFormat(){
+    const data=(1<<3)|mask; // Error correction level L
+    const bits=((data<<10)|bchRemainder(data<<10,0x537))^0x5412;
+    for(let i=0;i<=5;i++) setFunction(8,i,((bits>>>i)&1)!==0);
+    setFunction(8,7,((bits>>>6)&1)!==0);
+    setFunction(8,8,((bits>>>7)&1)!==0);
+    setFunction(7,8,((bits>>>8)&1)!==0);
+    for(let i=9;i<15;i++) setFunction(14-i,8,((bits>>>i)&1)!==0);
+    for(let i=0;i<8;i++) setFunction(size-1-i,8,((bits>>>i)&1)!==0);
+    for(let i=8;i<15;i++) setFunction(8,size-15+i,((bits>>>i)&1)!==0);
+    setFunction(8,size-8,true);
+  }
+  if(version>=7){
+    const bits=(version<<12)|bchRemainder(version<<12,0x1f25);
+    for(let i=0;i<18;i++){
+      const bit=((bits>>>i)&1)!==0;
+      const a=size-11+(i%3),b=Math.floor(i/3);
+      setFunction(a,b,bit);setFunction(b,a,bit);
+    }
+  }
+  drawFormat();
+
+  let bitIndex=0;
+  let upward=true;
+  for(let right=size-1;right>=1;right-=2){
+    if(right===6) right=5;
+    for(let vert=0;vert<size;vert++){
+      const y=upward?size-1-vert:vert;
+      for(let j=0;j<2;j++){
+        const x=right-j;
+        if(!isFunction[y][x]){
+          let dark=false;
+          if(bitIndex<codewords.length*8){
+            const byte=codewords[Math.floor(bitIndex/8)];
+            dark=((byte>>>(7-(bitIndex%8)))&1)!==0;
+          }
+          const invert=[
+            (x+y)%2===0,
+            y%2===0,
+            x%3===0,
+            (x+y)%3===0,
+            (Math.floor(y/2)+Math.floor(x/3))%2===0,
+            (x*y)%2+(x*y)%3===0,
+            ((x*y)%2+(x*y)%3)%2===0,
+            ((x+y)%2+(x*y)%3)%2===0
+          ][mask];
+          modules[y][x]=dark!==invert;
+          bitIndex++;
+        }
+      }
+    }
+    upward=!upward;
+  }
+  return {modules,isFunction};
+}
+function penaltyScore(matrix){
+  const n=matrix.length;let score=0,darkCount=0;
+  const lines=[];
+  for(let y=0;y<n;y++) lines.push(matrix[y]);
+  for(let x=0;x<n;x++) lines.push(matrix.map(row=>row[x]));
+  for(const line of lines){
+    let runColor=line[0],run=1;
+    for(let i=1;i<line.length;i++){
+      if(line[i]===runColor) run++;
+      else{if(run>=5) score+=3+run-5;runColor=line[i];run=1;}
+    }
+    if(run>=5) score+=3+run-5;
+    for(let i=0;i<=line.length-11;i++){
+      let s="";for(let j=0;j<11;j++) s+=line[i+j]?"1":"0";
+      if(s==="10111010000"||s==="00001011101") score+=40;
+    }
+  }
+  for(let y=0;y<n-1;y++) for(let x=0;x<n-1;x++){
+    const c=matrix[y][x];
+    if(matrix[y][x+1]===c&&matrix[y+1][x]===c&&matrix[y+1][x+1]===c) score+=3;
+  }
+  for(const row of matrix) for(const cell of row) if(cell) darkCount++;
+  score+=Math.floor(Math.abs(darkCount*100/(n*n)-50)/5)*10;
+  return score;
+}
+function createQr(text){
+  const bytes=Array.from(new TextEncoder().encode(text));
+  let version=0;
+  for(let v=1;v<=10;v++){
+    const countBits=v<10?8:16;
+    if(4+countBits+bytes.length*8<=QR_DATA_CODEWORDS[v]*8){version=v;break;}
+  }
+  if(!version) throw new Error("網址太長（目前最多支援約 271 個 UTF-8 位元組），請使用短網址。");
+  const codewords=makeCodewords(bytes,version);
+  let best=null,bestScore=Infinity;
+  for(let mask=0;mask<8;mask++){
+    const candidate=makeMatrix(version,codewords,mask);
+    const score=penaltyScore(candidate.modules);
+    if(score<bestScore){bestScore=score;best=candidate.modules;}
+  }
+  return {matrix:best,version};
+}
+
+const form=document.getElementById("qrForm");
+const input=document.getElementById("urlInput");
+const canvas=document.getElementById("qrCanvas");
+const ctx=canvas.getContext("2d");
+const emptyState=document.getElementById("emptyState");
+const statusEl=document.getElementById("status");
+const caption=document.getElementById("qrCaption");
+const pngBtn=document.getElementById("pngBtn");
+const svgBtn=document.getElementById("svgBtn");
+const copyBtn=document.getElementById("copyBtn");
+let currentUrl="";
+let currentMatrix=null;
+
+function normalizeUrl(raw){
+  let value=raw.trim();
+  if(!value) throw new Error("請先輸入網址。");
+  if(!/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(value)) value="https://"+value;
+  let parsed;
+  try{parsed=new URL(value);}catch(e){throw new Error("網址格式不正確，請檢查後再試一次。");}
+  if(!["http:","https:"].includes(parsed.protocol)) throw new Error("目前只支援 http:// 或 https:// 網址。");
+  if(!parsed.hostname||!parsed.hostname.includes(".")) throw new Error("請輸入有效的網站網域，例如 example.com。");
+  return parsed.href;
+}
+function drawQr(matrix){
+  const n=matrix.length,quiet=4,total=n+quiet*2;
+  canvas.width=720;canvas.height=720;
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,720,720);
+  ctx.fillStyle="#201b22";
+  const unit=720/total;
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+    if(matrix[y][x]){
+      const left=Math.round((x+quiet)*unit);
+      const top=Math.round((y+quiet)*unit);
+      const right=Math.round((x+quiet+1)*unit);
+      const bottom=Math.round((y+quiet+1)*unit);
+      ctx.fillRect(left,top,right-left,bottom-top);
+    }
+  }
+  canvas.style.display="block";emptyState.style.display="none";
+}
+function makeSvg(matrix){
+  const n=matrix.length,total=n+8;
+  let path="";
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++) if(matrix[y][x]) path+=`M${x+4} ${y+4}h1v1h-1z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" width="720" height="720" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${path}" fill="#201b22"/></svg>`;
+}
+form.addEventListener("submit",(event)=>{
+  event.preventDefault();
+  statusEl.classList.remove("error");
+  try{
+    const url=normalizeUrl(input.value);
+    const qr=createQr(url);
+    currentUrl=url;currentMatrix=qr.matrix;
+    drawQr(qr.matrix);
+    caption.textContent=url;
+    pngBtn.disabled=false;svgBtn.disabled=false;copyBtn.disabled=false;
+    statusEl.textContent=`🎉 QR Code 產生成功！使用第 ${qr.version} 版 QR Code。`;
+    if(input.value.trim()!==url) input.value=url;
+  }catch(error){
+    statusEl.textContent=error.message||"產生失敗，請檢查網址後再試一次。";
+    statusEl.classList.add("error");
+    pngBtn.disabled=true;svgBtn.disabled=true;
+  }
+});
+document.getElementById("clearBtn").addEventListener("click",()=>{
+  input.value="";currentUrl="";currentMatrix=null;
+  canvas.style.display="none";emptyState.style.display="block";
+  caption.textContent="尚未產生 QR Code";
+  statusEl.textContent="已清除，可以輸入新的網址。";
+  statusEl.classList.remove("error");
+  pngBtn.disabled=true;svgBtn.disabled=true;copyBtn.disabled=true;
+  input.focus();
+});
+copyBtn.addEventListener("click",async()=>{
+  if(!currentUrl)return;
+  try{
+    if(navigator.clipboard&&window.isSecureContext){
+      await navigator.clipboard.writeText(currentUrl);
+    }else{
+      const temp=document.createElement("textarea");
+      temp.value=currentUrl;temp.setAttribute("readonly","");
+      temp.style.position="fixed";temp.style.opacity="0";
+      document.body.appendChild(temp);temp.select();
+      const copied=document.execCommand("copy");temp.remove();
+      if(!copied)throw new Error("瀏覽器不允許複製，請手動選取網址。");
+    }
+    statusEl.textContent="📋 網址已複製，可以貼到需要的地方囉！";
+    statusEl.classList.remove("error");
+  }catch(error){
+    statusEl.textContent=error.message||"複製失敗，請手動複製上方網址。";
+    statusEl.classList.add("error");
+  }
+});
+pngBtn.addEventListener("click",()=>{
+  if(!currentMatrix)return;
+  canvas.toBlob((blob)=>{
+    if(!blob){statusEl.textContent="PNG 產生失敗，請再試一次。";statusEl.classList.add("error");return;}
+    const link=document.createElement("a");
+    const objectUrl=URL.createObjectURL(blob);
+    link.href=objectUrl;link.download="qrcode.png";link.click();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+  },"image/png");
+});
+svgBtn.addEventListener("click",()=>{
+  if(!currentMatrix)return;
+  const blob=new Blob([makeSvg(currentMatrix)],{type:"image/svg+xml;charset=utf-8"});
+  const objectUrl=URL.createObjectURL(blob);
+  const link=document.createElement("a");
+  link.href=objectUrl;link.download="qrcode.svg";link.click();
+  setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+});
+</script>
+</body>
+</html>
